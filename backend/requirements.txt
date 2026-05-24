@@ -1,0 +1,5 @@
+python-dotenv>=0.21.0
+# Optional (install if you plan to use local Llama python binding):
+# llama-cpp-python>=0.1.72
+# For production OpenAI integration you may prefer `openai` package instead of urllib
+# openai>=1.0.0

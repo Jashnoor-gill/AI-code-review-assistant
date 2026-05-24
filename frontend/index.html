@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Code Review Assistant</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="panel hero">
+        <p class="eyebrow">AI-powered code review</p>
+        <h1>Review pull requests with security-first triage.</h1>
+        <p class="lede">Submit a diff, inspect findings, approve or reject the review, and keep a searchable history in one place.</p>
+
+        <form id="review-form" class="form">
+          <label>
+            Provider
+            <select name="provider">
+              <option value="local-git">Local diff</option>
+              <option value="github">GitHub</option>
+              <option value="gitlab">GitLab</option>
+            </select>
+          </label>
+          <label>
+            Reference / URL
+            <input name="reference" placeholder="Paste a PR URL, repo path, or raw diff" />
+          </label>
+          <label>
+            Repository
+            <input name="repository" placeholder="owner/repo or local" />
+          </label>
+          <label>
+            Title
+            <input name="title" value="New review" />
+          </label>
+          <label>
+            Diff
+            <textarea name="diff" rows="10" placeholder="Optional raw diff text"></textarea>
+          </label>
+          <button type="submit">Run review</button>
+        </form>
+      </aside>
+
+      <main class="panel content">
+        <section>
+          <div class="section-header">
+            <h2>Current review</h2>
+            <div class="actions">
+              <button id="approve-btn" class="ghost">Approve</button>
+              <button id="reject-btn" class="ghost danger">Reject</button>
+            </div>
+          </div>
+          <div id="current-review" class="card muted">No review loaded.</div>
+        </section>
+
+        <section>
+          <div class="section-header">
+            <h2>Review history</h2>
+            <button id="refresh-btn" class="ghost">Refresh</button>
+          </div>
+          <div id="jobs" class="list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
