@@ -75,6 +75,9 @@ def _retry(operation, attempts: int = 3, delay_seconds: float = 0.5):
 
 def _is_same_origin_request(handler: BaseHTTPRequestHandler) -> bool:
     host = handler.headers.get("Host", "")
+    fetch_site = handler.headers.get("Sec-Fetch-Site", "")
+    if fetch_site in ("same-origin", "same-site") and host:
+        return True
     for header_name in ("Origin", "Referer"):
         header_value = handler.headers.get(header_name, "")
         if not header_value:
