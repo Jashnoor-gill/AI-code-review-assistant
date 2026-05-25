@@ -246,7 +246,22 @@ class ReviewRequestHandler(BaseHTTPRequestHandler):
         if not path.exists():
             _json_response(self, HTTPStatus.NOT_FOUND, {"error": "Frontend file missing"})
             return
-        _text_response(self, HTTPStatus.OK, path.read_text(encoding="utf-8"), content_type)
+        text = path.read_text(encoding="utf-8")
+        # Inject API token into the served index.html so the frontend can attach it to requests.
+        # Only inject when token requirement is enabled and a token is configured.
+        try:
+            from .config import API_TOKEN, REQUIRE_API_TOKEN
+            if path.name == "index.html" and REQUIRE_API_TOKEN and API_TOKEN:
+                import json as _json
+                token_js = f"<script>window.__AI_CODE_REVIEW_TOKEN={_json.dumps(API_TOKEN)};</script>"
+                if "</body>" in text:
+                    text = text.replace("</body>", token_js + "</body>")
+                else:
+                    text = text + token_js
+        except Exception:
+            # If any issue occurs while injecting, fall back to serving the raw file.
+            pass
+        _text_response(self, HTTPStatus.OK, text, content_type)
 
     def log_message(self, format: str, *args: Any) -> None:
         return

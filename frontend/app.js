@@ -11,9 +11,22 @@ const approveBtn = document.getElementById('approve-btn');
 const rejectBtn = document.getElementById('reject-btn');
 const workspaceHeader = document.querySelector('.workspace-header h2');
 
+function showError(message) {
+  currentReview.innerHTML = `
+    <div class="card error-state">
+      <p class="eyebrow">Run review failed</p>
+      <h3>Something went wrong</h3>
+      <p class="muted">${message}</p>
+    </div>
+  `;
+}
+
 async function request(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const token = (typeof window !== 'undefined' && window.__AI_CODE_REVIEW_TOKEN) ? window.__AI_CODE_REVIEW_TOKEN : null;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(path, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers,
     ...options,
   });
   if (!response.ok) {
@@ -103,15 +116,25 @@ async function refresh() {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const formData = new FormData(form);
-  const payload = Object.fromEntries(formData.entries());
-  const job = await request('/api/reviews', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  state.current = job;
-  renderCurrent(job);
-  await refresh();
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = 'Running...';
+  try {
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const job = await request('/api/reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    state.current = job;
+    renderCurrent(job);
+    await refresh();
+  } catch (error) {
+    showError(error.message || 'Unable to run review.');
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = 'Run review';
+  }
 });
 
 refreshBtn.addEventListener('click', refresh);
