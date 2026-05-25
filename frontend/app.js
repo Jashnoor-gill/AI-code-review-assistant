@@ -23,8 +23,6 @@ function showError(message) {
 
 async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = (typeof window !== 'undefined' && window.__AI_CODE_REVIEW_TOKEN) ? window.__AI_CODE_REVIEW_TOKEN : null;
-  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(path, {
     headers,
     ...options,
