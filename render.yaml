@@ -8,6 +8,8 @@ services:
     startCommand: python -m app.server
     healthCheckPath: /api/health
     envVars:
+      - key: AI_CODE_REVIEW_HOST
+        value: 0.0.0.0
       - key: AI_CODE_REVIEW_REQUIRE_API_TOKEN
         value: "true"
       - key: AI_CODE_REVIEW_TOKEN
