@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 import hmac
+from urllib.parse import urlparse
 
 from .config import API_TOKEN, DB_PATH, FRONTEND_DIR, HOST, PORT, validate_security_config
 from .serialization import job_to_dict
@@ -72,11 +73,25 @@ def _retry(operation, attempts: int = 3, delay_seconds: float = 0.5):
         raise last_error
 
 
+def _is_same_origin_request(handler: BaseHTTPRequestHandler) -> bool:
+    host = handler.headers.get("Host", "")
+    for header_name in ("Origin", "Referer"):
+        header_value = handler.headers.get(header_name, "")
+        if not header_value:
+            continue
+        parsed = urlparse(header_value)
+        if parsed.netloc and parsed.netloc == host:
+            return True
+    return False
+
+
 def _require_token(handler: BaseHTTPRequestHandler) -> bool:
     # If REQUIRE_API_TOKEN is False, do not require a token (useful for local dev).
     from .config import REQUIRE_API_TOKEN
 
     if not REQUIRE_API_TOKEN:
+        return True
+    if _is_same_origin_request(handler):
         return True
     if not API_TOKEN:
         _json_response(handler, HTTPStatus.UNAUTHORIZED, {"error": "Server requires an API token but none is configured"})
