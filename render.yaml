@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ai-code-review-assistant
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: python -m pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python -m app.server
+    healthCheckPath: /api/health
+    envVars:
+      - key: AI_CODE_REVIEW_REQUIRE_API_TOKEN
+        value: "true"
+      - key: AI_CODE_REVIEW_TOKEN
+        sync: false
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: HUGGINGFACE_MODEL
+        value: Qwen/Qwen2.5-Coder-7B-Instruct
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITLAB_WEBHOOK_SECRET
+        sync: false
