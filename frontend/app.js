@@ -9,6 +9,7 @@ const form = document.getElementById('review-form');
 const refreshBtn = document.getElementById('refresh-btn');
 const approveBtn = document.getElementById('approve-btn');
 const rejectBtn = document.getElementById('reject-btn');
+const workspaceHeader = document.querySelector('.workspace-header h2');
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
@@ -24,7 +25,13 @@ async function request(path, options = {}) {
 
 function renderCurrent(job) {
   if (!job) {
-    currentReview.innerHTML = '<p class="muted">No review loaded.</p>';
+    currentReview.innerHTML = `
+      <div class="empty-state">
+        <p class="eyebrow">Idle</p>
+        <h3>No review loaded</h3>
+        <p class="muted">Start with a diff or a repository reference. The review will appear here with findings, state, and the generated markdown comment.</p>
+      </div>
+    `;
     return;
   }
 
@@ -39,15 +46,21 @@ function renderCurrent(job) {
     .join('');
 
   currentReview.innerHTML = `
-    <div class="card">
-      <div><span class="tag">${job.state}</span> ${job.message}</div>
+    <div class="card review-card">
+      <div class="review-card__topline">
+        <div><span class="tag">${job.state}</span> ${job.message}</div>
+        <div class="review-progress">${job.progress}% complete</div>
+      </div>
       <h3>${job.metadata?.title || job.job_id}</h3>
       <p class="muted">${job.metadata?.provider || 'local'} / ${job.metadata?.repository || 'local'}</p>
-      <p><strong>${job.progress}%</strong> complete</p>
-      <div class="finding"><pre style="white-space: pre-wrap; margin: 0">${job.markdown_comment || ''}</pre></div>
+      <div class="finding review-comment"><pre>${job.markdown_comment || ''}</pre></div>
       ${findings}
     </div>
   `;
+
+  if (workspaceHeader) {
+    workspaceHeader.textContent = `${state.jobs.length} reviews in queue`;
+  }
 }
 
 function renderJobs(jobs) {
@@ -57,10 +70,13 @@ function renderJobs(jobs) {
   }
 
   jobsContainer.innerHTML = jobs.map((job) => `
-    <button class="list-item" data-job-id="${job.job_id}" style="text-align: left; width: 100%; color: inherit; background: rgba(255,255,255,0.03)">
-      <div class="tag">${job.state}</div>
-      <div><strong>${job.metadata?.title || job.job_id}</strong></div>
-      <div class="muted">${job.metadata?.repository || 'local'} - ${job.findings.length} finding(s)</div>
+    <button class="list-item" data-job-id="${job.job_id}" type="button">
+      <div class="list-item__meta">
+        <div class="tag">${job.state}</div>
+        <div class="muted">${job.findings.length} finding(s)</div>
+      </div>
+      <div class="list-item__title"><strong>${job.metadata?.title || job.job_id}</strong></div>
+      <div class="muted">${job.metadata?.repository || 'local'}</div>
     </button>
   `).join('');
 
@@ -77,6 +93,12 @@ async function refresh() {
   const data = await request('/api/jobs');
   state.jobs = data.jobs;
   renderJobs(state.jobs);
+  if (!state.current) {
+    renderCurrent(null);
+  }
+  if (workspaceHeader) {
+    workspaceHeader.textContent = `${state.jobs.length} reviews in queue`;
+  }
 }
 
 form.addEventListener('submit', async (event) => {
@@ -118,3 +140,5 @@ rejectBtn.addEventListener('click', async () => {
 refresh().catch((error) => {
   currentReview.innerHTML = `<div class="card muted">${error.message}</div>`;
 });
+
+renderCurrent(null);

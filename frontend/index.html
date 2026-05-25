@@ -7,11 +7,33 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
     <div class="shell">
       <aside class="panel hero">
-        <p class="eyebrow">AI-powered code review</p>
-        <h1>Review pull requests with security-first triage.</h1>
+        <div class="hero-topbar">
+          <div>
+            <p class="eyebrow">AI Code Review Assistant</p>
+            <h1>Thin interface. Heavy signal.</h1>
+          </div>
+          <div class="status-dot" title="Live"></div>
+        </div>
         <p class="lede">Submit a diff, inspect findings, approve or reject the review, and keep a searchable history in one place.</p>
+
+        <div class="hero-metrics">
+          <div class="metric">
+            <span class="metric-label">Mode</span>
+            <strong>Security-first</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Backend</span>
+            <strong>Connected</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Surface</span>
+            <strong>Single origin</strong>
+          </div>
+        </div>
 
         <form id="review-form" class="form">
           <label>
@@ -43,6 +65,14 @@
       </aside>
 
       <main class="panel content">
+        <header class="workspace-header">
+          <div>
+            <p class="eyebrow">Command center</p>
+            <h2>Review queue and findings</h2>
+          </div>
+          <div class="workspace-chip">Same-origin API / frontend</div>
+        </header>
+
         <section>
           <div class="section-header">
             <h2>Current review</h2>
