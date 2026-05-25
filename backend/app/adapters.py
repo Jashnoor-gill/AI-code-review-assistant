@@ -45,11 +45,42 @@ def _parse_reference(reference: str) -> tuple[str | None, str | None, int | None
         parts = [part for part in parsed.path.split("/") if part]
         if len(parts) >= 4 and parts[2] == "pull":
             return f"{parts[0]}/{parts[1]}", "github", int(parts[3])
+        if len(parts) >= 2:
+            return f"{parts[0]}/{parts[1]}", "github", None
     if parsed.netloc.endswith("gitlab.com"):
         parts = [part for part in parsed.path.split("/") if part]
         if len(parts) >= 5 and parts[3] == "-" and parts[4] == "merge_requests":
             return f"{parts[0]}/{parts[1]}", "gitlab", int(parts[5])
     return None, None, None
+
+
+def _github_json(api_base: str, path: str, token: str | None = None) -> dict[str, Any]:
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "ai-code-review-assistant"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = Request(f"{api_base}{path}", headers=headers)
+    with urlopen(request, timeout=20) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def _github_latest_commit_diff(api_base: str, repository: str, token: str | None = None) -> str:
+    repo_info = _github_json(api_base, f"/repos/{repository}", token=token)
+    default_branch = repo_info.get("default_branch", "main")
+    branch_info = _github_json(api_base, f"/repos/{repository}/branches/{quote(default_branch, safe='')}", token=token)
+    head_sha = branch_info.get("commit", {}).get("sha")
+    if not head_sha:
+        return f"# Unable to fetch GitHub branch head for {repository}@{default_branch}"
+    commit_info = _github_json(api_base, f"/repos/{repository}/commits/{head_sha}", token=token)
+    parents = commit_info.get("parents", [])
+    if not parents:
+        return f"# No parent commit available for {repository}@{default_branch}"
+    parent_sha = parents[0].get("sha")
+    if not parent_sha:
+        return f"# No parent SHA available for {repository}@{default_branch}"
+    headers = {"Accept": "application/vnd.github.v3.diff", "User-Agent": "ai-code-review-assistant"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return _read_url(f"{api_base}/repos/{repository}/compare/{parent_sha}...{head_sha}", headers=headers)
 
 
 @dataclass(slots=True)
@@ -105,17 +136,22 @@ class GitHubAdapter:
                 diff_text = _read_url(f"{self.api_base}/repos/{repository}/pulls/{pull_request_number}", headers=headers)
             except URLError:
                 diff_text = f"# Unable to fetch GitHub PR diff for {repository}#{pull_request_number}"
+        elif not diff_text and repository:
+            try:
+                diff_text = _github_latest_commit_diff(self.api_base, repository, token=self.token)
+            except URLError:
+                diff_text = f"# Unable to fetch GitHub repository diff for {repository}"
         return ReviewContext(
             provider=self.provider,
             repository=repository or reference,
             pull_request_number=pull_request_number,
-            title=payload.get("title", "GitHub pull request"),
+            title=payload.get("title", "GitHub pull request" if pull_request_number else "GitHub repository review"),
             base_branch=payload.get("base_branch", "main"),
             head_branch=payload.get("head_branch", "feature"),
             author=payload.get("author"),
             diff=normalize_diff(diff_text),
             files_changed=list(payload.get("files_changed", [])),
-            metadata={"source": "github", "reference": reference, **payload.get("metadata", {})},
+            metadata={"source": "github", "reference": reference, "mode": "repository" if not pull_request_number else "pull-request", **payload.get("metadata", {})},
         )
 
     def post_comment(self, repository: str, pull_request_number: int, body: str) -> bool:
